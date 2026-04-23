@@ -96,7 +96,43 @@
   .error-box { background: rgba(224,90,106,0.08); border: 1px solid rgba(224,90,106,0.2); border-radius: 10px; padding: 14px 18px; font-size: 13px; color: var(--red); }
   .tip-box { margin-top: 12px; padding: 14px 18px; background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.15); border-radius: 10px; font-size: 13px; color: var(--muted); }
   .tip-label { color: var(--gold); font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 4px; }
-  @media (max-width: 600px) { .rec-header { flex-wrap: wrap; } .rec-rate { text-align: left; } }
+  @media (max-width: 600px) {
+    .container { padding: 28px 16px 60px; }
+    .header { margin-bottom: 32px; }
+    .header h1 { font-size: 1.8rem; }
+    .header p { font-size: 13px; }
+
+    .mode-toggle { width: 100%; }
+    .mode-btn { flex: 1; text-align: center; padding: 8px 10px; font-size: 12px; }
+
+    .query-box { padding: 4px 4px 4px 14px; border-radius: 12px; }
+    .query-input { font-size: 14px; padding: 12px 0; }
+    .search-btn { padding: 12px 16px; font-size: 13px; border-radius: 9px; }
+
+    .chips { gap: 6px; margin-bottom: 28px; }
+    .chip { font-size: 11px; padding: 5px 11px; }
+
+    .rec-header { flex-wrap: wrap; gap: 14px; padding: 16px 18px 14px; }
+    .rec-card-svg { width: 100%; max-width: 200px; }
+    .rec-rate { text-align: left; }
+    .rec-body { padding: 14px 18px 18px; }
+    .rec-name { font-size: 16px; }
+    .rate-value { font-size: 18px; }
+
+    .runner-up { padding: 12px 16px; gap: 12px; }
+    .runner-svg { width: 56px; }
+    .runner-name { font-size: 13px; }
+    .runner-reason { font-size: 11px; }
+    .runner-rate { font-size: 14px; }
+
+    .cards-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .section-label { font-size: 9px; margin: 28px 0 14px; }
+  }
+
+  @media (max-width: 380px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 1.5rem; }
+  }
 </style>
 </head>
 <body>
