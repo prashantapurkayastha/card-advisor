@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Card Advisor — Pras's Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #161618;
+    --surface2: #1e1e22;
+    --border: rgba(255,255,255,0.07);
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dim: rgba(201,168,76,0.15);
+    --text: #f0ece4;
+    --muted: #7a7672;
+    --accent: #4ecca3;
+    --red: #e05a6a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; }
+  .container { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; position: relative; z-index: 1; }
+
+  .header { text-align: center; margin-bottom: 52px; }
+  .header-eyebrow { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; }
+  .header h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; line-height: 1.1; background: linear-gradient(135deg, var(--gold-light), var(--gold), #9e7a28); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px; }
+  .header p { color: var(--muted); font-size: 15px; font-weight: 300; }
+
+  .mode-toggle { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 32px; width: fit-content; margin-left: auto; margin-right: auto; }
+  .mode-btn { padding: 8px 20px; border: none; border-radius: 9px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: all 0.2s; background: transparent; color: var(--muted); }
+  .mode-btn.active { background: var(--gold); color: #000; }
+
+  .query-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 6px 6px 6px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; transition: border-color 0.2s; }
+  .query-box:focus-within { border-color: rgba(201,168,76,0.4); }
+  .query-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 300; padding: 14px 0; }
+  .query-input::placeholder { color: var(--muted); }
+  .search-btn { background: linear-gradient(135deg, var(--gold-light), var(--gold)); border: none; border-radius: 11px; padding: 14px 24px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: #000; transition: all 0.2s; }
+  .search-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(201,168,76,0.3); }
+  .search-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px; }
+  .chip { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 12px; color: var(--muted); cursor: pointer; transition: all 0.2s; font-family: 'DM Mono', monospace; }
+  .chip:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+
+  .result-area { min-height: 60px; }
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+  .loading-dots::after { content: ''; animation: dots 1.4s infinite; }
+  @keyframes dots { 0%,20%{content:'.'} 40%{content:'..'} 60%,100%{content:'...'} }
+
+  .rec-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; margin-bottom: 16px; animation: slideUp 0.35s ease; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  .rec-header { padding: 22px 26px 18px; display: flex; align-items: flex-start; gap: 20px; border-bottom: 1px solid var(--border); }
+  .rec-card-svg { flex-shrink: 0; width: 110px; }
+  .rec-card-svg svg { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); display: block; }
+  .rec-meta { flex: 1; }
+  .rec-rank { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--gold); margin-bottom: 4px; }
+  .rec-name { font-family: 'Playfair Display', serif; font-size: 19px; margin-bottom: 4px; }
+  .rec-subtitle { color: var(--muted); font-size: 13px; }
+  .rec-rate { text-align: right; flex-shrink: 0; }
+  .rate-value { font-family: 'DM Mono', monospace; font-size: 22px; color: var(--accent); display: block; }
+  .rate-label { font-size: 11px; color: var(--muted); }
+  .rec-body { padding: 18px 26px 22px; }
+  .rec-reason { font-size: 14px; line-height: 1.7; color: #c0bbb4; margin-bottom: 14px; }
+  .rec-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); }
+  .tag.warning { border-color: rgba(224,90,106,0.3); color: var(--red); background: rgba(224,90,106,0.08); }
+  .tag.good { border-color: rgba(78,204,163,0.3); color: var(--accent); background: rgba(78,204,163,0.08); }
+
+  .runner-up { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 16px; animation: slideUp 0.4s ease; }
+  .runner-svg { flex-shrink: 0; width: 72px; }
+  .runner-svg svg { width: 100%; height: auto; border-radius: 6px; display: block; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+  .runner-meta { flex: 1; }
+  .runner-rank { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; }
+  .runner-name { font-size: 15px; font-weight: 500; margin-bottom: 2px; }
+  .runner-reason { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .runner-rate { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--muted); flex-shrink: 0; }
+
+  .section-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); margin: 36px 0 20px; display: flex; align-items: center; gap: 12px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .card-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; cursor: pointer; transition: all 0.22s; position: relative; overflow: hidden; }
+  .card-tile:hover { border-color: rgba(255,255,255,0.14); transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.45); }
+  .card-tile-top { position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 14px 14px 0 0; }
+  .card-svg-wrap { margin-bottom: 12px; }
+  .card-svg-wrap svg { width: 100%; height: auto; border-radius: 9px; display: block; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+  .card-tile-stats { display: flex; flex-direction: column; gap: 5px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  .stat-label { color: var(--muted); }
+  .stat-value { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12px; }
+  .card-best-for { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+  .error-box { background: rgba(224,90,106,0.08); border: 1px solid rgba(224,90,106,0.2); border-radius: 10px; padding: 14px 18px; font-size: 13px; color: var(--red); }
+  .tip-box { margin-top: 12px; padding: 14px 18px; background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.15); border-radius: 10px; font-size: 13px; color: var(--muted); }
+  .tip-label { color: var(--gold); font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 4px; }
+  @media (max-width: 600px) { .rec-header { flex-wrap: wrap; } .rec-rate { text-align: left; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-eyebrow">Pras's Wallet · 6 Cards</div>
+    <h1>Which Card to Use?</h1>
+    <p>Describe what you're spending on — get the best card from your wallet</p>
+  </div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="ruleBtn" onclick="setMode('rule')">⚡ Rule-Based</button>
+    <button class="mode-btn" id="aiBtn" onclick="setMode('ai')">✦ Gemini AI</button>
+  </div>
+  </div>
+
+  <div class="query-box">
+    <input class="query-input" id="queryInput"
+      placeholder="e.g. ordering Swiggy, booking a flight, grocery at Dmart, paying rent…"
+      onkeydown="if(event.key==='Enter') recommend()" />
+    <button class="search-btn" id="searchBtn" onclick="recommend()">
+      <span id="searchLabel">Recommend</span>
+    </button>
+  </div>
+
+  <div class="chips">
+    <span class="chip" onclick="quickAsk('ordering dinner on Swiggy')">🍔 Swiggy</span>
+    <span class="chip" onclick="quickAsk('booking domestic flight MakeMyTrip')">✈️ Flight</span>
+    <span class="chip" onclick="quickAsk('shopping on Amazon India')">📦 Amazon</span>
+    <span class="chip" onclick="quickAsk('buying groceries at DMart')">🛒 Groceries</span>
+    <span class="chip" onclick="quickAsk('paying electricity bill online')">💡 Utility</span>
+    <span class="chip" onclick="quickAsk('dining at a restaurant')">🍽️ Dining</span>
+    <span class="chip" onclick="quickAsk('international purchase in USD abroad')">🌍 Forex</span>
+    <span class="chip" onclick="quickAsk('buying movie tickets on BookMyShow')">🎬 BookMyShow</span>
+    <span class="chip" onclick="quickAsk('shopping on Myntra')">👗 Myntra</span>
+    <span class="chip" onclick="quickAsk('paying rent via housing app')">🏠 Rent</span>
+  </div>
+
+  <div class="result-area" id="resultArea"></div>
+
+  <div class="section-label">Your Wallet</div>
+  <div class="cards-grid" id="cardsGrid"></div>
+
+</div>
+<script>
+// ── SVG CARD DESIGNS ──────────────────────────────────────────────────────────
+const CARD_SVGS = {
+  sbi: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g-sbi" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#003087"/><stop offset="100%" stop-color="#0059b3"/></linearGradient>
+    </defs>
+    <rect width="320" height="200" rx="12" fill="url(#g-sbi)"/>
+    <circle cx="260" cy="170" r="100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="50"/>
+    <circle cx="260" cy="170" r="60" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="30"/>
+    <rect x="22" y="68" width="44" height="33" rx="5" fill="#d4a84b" opacity="0.92"/>
+    <line x1="22" y1="80" x2="66" y2="80" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="22" y1="89" x2="66" y2="89" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="36" y1="68" x2="36" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="52" y1="68" x2="52" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <text x="22" y="40" font-family="Georgia,serif" font-size="20" font-weight="700" fill="white" opacity="0.95">SBI</text>
+    <text x="52" y="40" font-family="Arial,sans-serif" font-size="9" fill="rgba(255,255,255,0.5)" letter-spacing="0.5">State Bank of India</text>
+    <text x="22" y="158" font-family="Arial,sans-serif" font-size="12" fill="rgba(255,255,255,0.9)" letter-spacing="1.5">SimplySAVE</text>
+    <text x="22" y="174" font-family="Arial,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)" letter-spacing="1">RUPAY CREDIT CARD</text>
+    <rect x="258" y="164" width="44" height="22" rx="4" fill="rgba(255,255,255,0.08)"/>
+    <text x="280" y="179" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="rgba(255,165,0,0.9)" text-anchor="middle">RuPay</text>
+  </svg>`,
+
+  yes: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g-yes" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#150828"/><stop offset="60%" stop-color="#2a1050"/><stop offset="100%" stop-color="#3d1878"/></linearGradient>
+      <linearGradient id="g-yes-gold" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#c9a84c"/><stop offset="100%" stop-color="#e8c97a"/></linearGradient>
+    </defs>
+    <rect width="320" height="200" rx="12" fill="url(#g-yes)"/>
+    <path d="M0 130 Q80 100 160 130 Q240 160 320 130 L320 200 L0 200Z" fill="rgba(201,168,76,0.07)"/>
+    <path d="M0 148 Q80 118 160 148 Q240 178 320 148 L320 200 L0 200Z" fill="rgba(201,168,76,0.04)"/>
+    <rect x="22" y="68" width="44" height="33" rx="5" fill="#d4a84b" opacity="0.92"/>
+    <line x1="22" y1="80" x2="66" y2="80" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="22" y1="89" x2="66" y2="89" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="36" y1="68" x2="36" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="52" y1="68" x2="52" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <text x="22" y="40" font-family="Arial,sans-serif" font-size="22" font-weight="800" fill="url(#g-yes-gold)">YES</text>
+    <text x="68" y="40" font-family="Arial,sans-serif" font-size="10" fill="rgba(255,255,255,0.5)" letter-spacing="0.5">BANK</text>
+    <rect x="216" y="14" width="86" height="24" rx="12" fill="rgba(201,168,76,0.2)" stroke="rgba(201,168,76,0.4)" stroke-width="1"/>
+    <text x="259" y="30" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#e8c97a" text-anchor="middle">0% FOREX</text>
+    <text x="22" y="158" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="url(#g-yes-gold)" letter-spacing="2">UNI GOLD</text>
+    <text x="22" y="174" font-family="Arial,sans-serif" font-size="9" fill="rgba(255,255,255,0.38)" letter-spacing="1">MASTERCARD · LIFETIME FREE</text>
+    <circle cx="278" cy="176" r="12" fill="#eb001b" opacity="0.85"/>
+    <circle cx="294" cy="176" r="12" fill="#f79e1b" opacity="0.85"/>
+    <ellipse cx="286" cy="176" rx="4" ry="9" fill="#ff5f00" opacity="0.6"/>
+  </svg>`,
+
+  swiggy: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g-sw" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#141414"/><stop offset="100%" stop-color="#202020"/></linearGradient>
+    </defs>
+    <rect width="320" height="200" rx="12" fill="url(#g-sw)"/>
+    <rect x="0" y="0" width="320" height="4" rx="0" fill="#fc6a00"/>
+    <circle cx="275" cy="45" r="75" fill="rgba(252,106,0,0.06)"/>
+    <circle cx="275" cy="45" r="48" fill="rgba(252,106,0,0.06)"/>
+    <rect x="22" y="68" width="44" height="33" rx="5" fill="#d4a84b" opacity="0.92"/>
+    <line x1="22" y1="80" x2="66" y2="80" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="22" y1="89" x2="66" y2="89" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="36" y1="68" x2="36" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="52" y1="68" x2="52" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <text x="22" y="38" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="#fc6a00" letter-spacing="-0.5">swiggy</text>
+    <text x="22" y="53" font-family="Arial,sans-serif" font-size="9" fill="rgba(255,255,255,0.38)" letter-spacing="1">HDFC BANK</text>
+    <text x="22" y="158" font-family="Arial,sans-serif" font-size="11" fill="rgba(255,255,255,0.75)" letter-spacing="1.5">CREDIT CARD</text>
+    <text x="22" y="174" font-family="Arial,sans-serif" font-size="9" fill="rgba(255,255,255,0.3)" letter-spacing="1">10% CASHBACK · LIFETIME FREE</text>
+    <circle cx="278" cy="176" r="12" fill="#eb001b" opacity="0.85"/>
+    <circle cx="294" cy="176" r="12" fill="#f79e1b" opacity="0.85"/>
+    <ellipse cx="286" cy="176" rx="4" ry="9" fill="#ff5f00" opacity="0.6"/>
+  </svg>`,
+
+  regalia: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g-reg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1a1005"/><stop offset="50%" stop-color="#2a1c08"/><stop offset="100%" stop-color="#150e04"/></linearGradient>
+      <linearGradient id="g-reg-gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8c97a"/><stop offset="50%" stop-color="#c9a84c"/><stop offset="100%" stop-color="#9a7228"/></linearGradient>
+    </defs>
+    <rect width="320" height="200" rx="12" fill="url(#g-reg)"/>
+    <rect x="1" y="1" width="318" height="198" rx="11" fill="none" stroke="url(#g-reg-gold)" stroke-width="1" opacity="0.4"/>
+    <polygon points="160,18 230,88 160,158 90,88" fill="none" stroke="rgba(201,168,76,0.07)" stroke-width="1.5"/>
+    <polygon points="160,38 210,88 160,138 110,88" fill="none" stroke="rgba(201,168,76,0.05)" stroke-width="1"/>
+    <rect x="22" y="68" width="44" height="33" rx="5" fill="#d4a84b" opacity="0.95"/>
+    <line x1="22" y1="80" x2="66" y2="80" stroke="#8a6020" stroke-width="1.2" opacity="0.7"/>
+    <line x1="22" y1="89" x2="66" y2="89" stroke="#8a6020" stroke-width="1.2" opacity="0.7"/>
+    <line x1="36" y1="68" x2="36" y2="101" stroke="#8a6020" stroke-width="1.2" opacity="0.7"/>
+    <line x1="52" y1="68" x2="52" y2="101" stroke="#8a6020" stroke-width="1.2" opacity="0.7"/>
+    <text x="22" y="38" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="url(#g-reg-gold)" letter-spacing="2">HDFC BANK</text>
+    <text x="22" y="156" font-family="Georgia,serif" font-size="15" font-weight="700" fill="url(#g-reg-gold)" letter-spacing="0.5">Regalia Gold</text>
+    <text x="22" y="173" font-family="Arial,sans-serif" font-size="8" fill="rgba(201,168,76,0.38)" letter-spacing="2">PREMIUM CREDIT CARD</text>
+    <circle cx="278" cy="176" r="12" fill="#eb001b" opacity="0.75"/>
+    <circle cx="294" cy="176" r="12" fill="#f79e1b" opacity="0.75"/>
+    <ellipse cx="286" cy="176" rx="4" ry="9" fill="#ff5f00" opacity="0.55"/>
+  </svg>`,
+
+  sapphiro_amex: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g-sa" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#082438"/><stop offset="55%" stop-color="#0d3a58"/><stop offset="100%" stop-color="#051c2c"/></linearGradient>
+    </defs>
+    <rect width="320" height="200" rx="12" fill="url(#g-sa)"/>
+    <polygon points="320,0 320,90 230,0" fill="rgba(100,200,255,0.06)"/>
+    <circle cx="285" cy="28" r="72" fill="none" stroke="rgba(80,180,255,0.05)" stroke-width="28"/>
+    <rect x="22" y="68" width="44" height="33" rx="5" fill="#d4a84b" opacity="0.92"/>
+    <line x1="22" y1="80" x2="66" y2="80" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="22" y1="89" x2="66" y2="89" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="36" y1="68" x2="36" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="52" y1="68" x2="52" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <text x="22" y="38" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="rgba(255,255,255,0.88)" letter-spacing="1">ICICI BANK</text>
+    <text x="22" y="156" font-family="Georgia,serif" font-size="16" font-weight="700" fill="rgba(120,205,255,0.92)" letter-spacing="0.5">Sapphiro</text>
+    <text x="22" y="173" font-family="Arial,sans-serif" font-size="9" fill="rgba(255,255,255,0.32)" letter-spacing="1.5">AMERICAN EXPRESS</text>
+    <text x="284" y="55" font-family="Arial,sans-serif" font-size="28" fill="rgba(255,255,255,0.1)" text-anchor="middle" font-weight="700">✦</text>
+    <text x="283" y="180" font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="rgba(100,180,255,0.65)" text-anchor="middle" letter-spacing="1">AMEX</text>
+  </svg>`,
+
+  sapphiro_mc: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g-sm" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#060f18"/><stop offset="55%" stop-color="#092230"/><stop offset="100%" stop-color="#040c16"/></linearGradient>
+    </defs>
+    <rect width="320" height="200" rx="12" fill="url(#g-sm)"/>
+    <polygon points="0,0 90,0 0,90" fill="rgba(0,180,220,0.06)"/>
+    <circle cx="40" cy="40" r="78" fill="none" stroke="rgba(0,170,210,0.05)" stroke-width="30"/>
+    <rect x="22" y="68" width="44" height="33" rx="5" fill="#d4a84b" opacity="0.92"/>
+    <line x1="22" y1="80" x2="66" y2="80" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="22" y1="89" x2="66" y2="89" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="36" y1="68" x2="36" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <line x1="52" y1="68" x2="52" y2="101" stroke="#a07830" stroke-width="1.2" opacity="0.6"/>
+    <text x="22" y="38" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="rgba(255,255,255,0.88)" letter-spacing="1">ICICI BANK</text>
+    <text x="22" y="156" font-family="Georgia,serif" font-size="16" font-weight="700" fill="rgba(90,210,240,0.9)" letter-spacing="0.5">Sapphiro</text>
+    <text x="22" y="173" font-family="Arial,sans-serif" font-size="9" fill="rgba(255,255,255,0.32)" letter-spacing="1.5">MASTERCARD</text>
+    <circle cx="278" cy="176" r="12" fill="#eb001b" opacity="0.85"/>
+    <circle cx="294" cy="176" r="12" fill="#f79e1b" opacity="0.85"/>
+    <ellipse cx="286" cy="176" rx="4" ry="9" fill="#ff5f00" opacity="0.6"/>
+  </svg>`
+};
+
+// ── CARD DATA ──────────────────────────────────────────────────────────────────
+const CARDS = [
+  { id:'sbi', name:'SBI SimplySave', network:'RuPay', fee:499, ltf:false, color:'#2a6496', baseRate:0.17,
+    exclusions:['rent','govt','gaming platforms'],
+    perks:['10X on dining/movies/grocery/dept stores','1% fuel surcharge waiver (₹500–₹3,000)','Fee waiver on ₹1L annual spend'],
+    keywords:['dining','restaurant','movie','pvr','inox','grocery','dmart','bigbasket offline','departmental','supermarket','spar'],
+    bestFor:['Dining out','Movies','Grocery stores'] },
+
+  { id:'yes', name:'Yes Bank Uni Gold', network:'Mastercard', fee:0, ltf:true, color:'#6b2fa0', baseRate:1.0,
+    exclusions:['rent earns 0%','utilities earn 0%'],
+    perks:['0% forex markup','1% gold back on all spends','7% on flights via Uni Store','10% on hotels','Lifetime free'],
+    keywords:['international','forex','abroad','usd','eur','foreign','flight','hotel','amazon voucher','zomato voucher','myntra voucher'],
+    bestFor:['Forex/international','Flights','Hotels'] },
+
+  { id:'swiggy', name:'HDFC Swiggy', network:'Mastercard', fee:0, ltf:true, color:'#fc8019', baseRate:1.0,
+    exclusions:['rent = 0% + 1% fee','fuel earns 0%','wallet loads','EMI','govt'],
+    perks:['10% on Swiggy/Instamart/Dineout/Genie','5% on online shopping','Complimentary Swiggy One (3 months)','Cashback as statement credit'],
+    keywords:['swiggy','instamart','dineout','uber','ola','rapido','myntra','ajio','amazon','flipkart','nykaa','pharmeasy','netmeds','electronics','apparel','online'],
+    bestFor:['Swiggy orders','Online shopping','Food delivery'] },
+
+  { id:'regalia', name:'HDFC Regalia Gold', network:'Visa/Mastercard', fee:2500, ltf:false, color:'#c9a84c', baseRate:1.73,
+    exclusions:['rent earns 0','wallets','fuel','govt'],
+    perks:['4 domestic + 6 intl lounge visits/yr','MakeMyTrip Black Elite membership','₹1,500 quarterly voucher on ₹1.5L spend','₹5,000 flight voucher on ₹5L annual','Fee waiver on ₹4L spend'],
+    keywords:['myntra','marks spencer','reliance digital','nykaa','travel','insurance','utilities','education','lounge','all categories'],
+    bestFor:['All-around spends','Myntra/Nykaa/Reliance Digital','Travel milestones'] },
+
+  { id:'sapphiro_amex', name:'ICICI Sapphiro Amex', network:'Amex', fee:0, ltf:true, color:'#1a6e8e', baseRate:0.5,
+    exclusions:['utility earns 1 pt/₹100 only'],
+    perks:['BookMyShow BOGO ₹500 off 2nd ticket (2x/month)','2 domestic lounge/quarter (need ₹75k quarterly)','2 intl lounge + Priority Pass','Welcome vouchers ₹13,000+','Golf 4x/month on ₹50k monthly spend'],
+    keywords:['bookmyshow','movie ticket','entertainment','international','lounge','golf'],
+    bestFor:['BookMyShow movies','International spends','Lounge access'] },
+
+  { id:'sapphiro_mc', name:'ICICI Sapphiro MC', network:'Mastercard', fee:0, ltf:true, color:'#0e5a70', baseRate:0.5,
+    exclusions:['utility earns 1 pt/₹100 only'],
+    perks:['BookMyShow BOGO ₹500 off 2nd ticket (2x/month)','2 domestic lounge/quarter (need ₹75k quarterly)','Priority Pass membership','Golf 4x/month'],
+    keywords:['bookmyshow','movie','lounge','international','golf'],
+    bestFor:['Stack with Sapphiro Amex for 4 free movies/month','Lounge access'] }
+];
+
+// ── RULE ENGINE ────────────────────────────────────────────────────────────────
+function ruleEngine(query) {
+  const q = query.toLowerCase();
+  return CARDS.map(card => {
+    let score=0, rate=card.baseRate, reason='', tags=[], warnings=[];
+    for(const kw of card.keywords){ if(q.includes(kw)) score+=3; }
+
+    if(/swiggy|instamart|dineout|genie/.test(q)&&card.id==='swiggy'){
+      score+=20;rate=10;
+      reason='10% cashback on all Swiggy spends (food, Instamart, Dineout, Genie). Capped at ₹1,500/cycle. Now credited as direct statement adjustment.';
+      tags=[{text:'10% cashback',type:'good'},{text:'Cap ₹1,500/cycle',type:'warning'}];
+    }
+    if(/international|forex|abroad|usd|eur|foreign currency|dollar|euro|\$|€/.test(q)&&card.id==='yes'){
+      score+=25;rate=1.0;
+      reason='0% forex markup — the only card in your wallet with this. All others charge 1.5–3.5%. Plus 1% gold back, so this is net-positive for any international spend.';
+      tags=[{text:'0% forex markup',type:'good'},{text:'1% gold back',type:'good'}];
+    }
+    if(/bookmyshow|bms|movie ticket|cinema|multiplex|pvr|inox/.test(q)&&(card.id==='sapphiro_amex'||card.id==='sapphiro_mc')){
+      score+=18;rate=2.5;
+      reason='BOGO on BookMyShow — ₹500 off the 2nd ticket, 2x per month. Both Sapphiro Amex AND MC offer this separately. Stack both cards for up to 4 free tickets/month.';
+      tags=[{text:'BOGO movies',type:'good'},{text:'Stack Amex+MC = 4 tickets/mo',type:'good'}];
+    }
+    if(/myntra|nykaa|reliance digital|marks.?(and|&|n).?spencer|m&s/.test(q)&&card.id==='regalia'){
+      score+=18;rate=3.5;
+      reason='5X reward points on Myntra, Nykaa, Reliance Digital, and M&S — ~3.5% effective return. Combined cap of 5,000 pts/month across these brands.';
+      tags=[{text:'5X points',type:'good'},{text:'Cap 5,000 pts/mo combined',type:'warning'}];
+    }
+    if(/flight|mmt|makemytrip|ixigo|cleartrip|indigo|air india|spicejet/.test(q)){
+      if(card.id==='yes'){score+=12;rate=7.0;reason='7% gold back on flights via Uni Store — unlimited, no cap. Best flight card in your wallet.';tags=[{text:'7% via Uni Store',type:'good'}];}
+      if(card.id==='regalia'){score+=8;reason='4 pts/₹150 base + counts towards ₹5L annual milestone (₹5,000 flight voucher). MakeMyTrip Black Elite also helps.';}
+    }
+    if(/hotel|stay|oyo|treebo|taj|marriott|ibis/.test(q)&&card.id==='yes'){
+      score+=15;rate=10.0;
+      reason='10% gold back on hotel bookings via Uni app — credited post check-in. Best hotel card in your wallet.';
+      tags=[{text:'10% on hotels',type:'good'}];
+    }
+    if(/grocery|bigbasket|zepto|blinkit|grofers|jiomart|dmart|more supermarket|reliance fresh/.test(q)){
+      if(card.id==='swiggy'&&/blinkit|zepto|instamart/.test(q)){score+=14;rate=10.0;reason='Instamart earns 10%. Blinkit/Zepto count as online shopping — 5% cashback, capped ₹1,500/cycle.';}
+      else if(card.id==='sbi'){score+=10;rate=1.7;reason='10X reward points on grocery and departmental store spends — 1.7% effective return.';tags=[{text:'10X grocery',type:'good'}];}
+    }
+    if(/dining|restaurant|dinner|lunch|cafe|bistro|bar|dhaba/.test(q)&&!/swiggy|zomato/.test(q)){
+      if(card.id==='sbi'){score+=12;rate=1.7;reason='10X reward points on dining spends — 1.7% effective return. Best for offline restaurant meals.';tags=[{text:'10X dining',type:'good'}];}
+    }
+    if(/electricity|utility bill|gas bill|water bill|bsnl|broadband|internet bill|jio bill|airtel/.test(q)){
+      if(card.id==='regalia'){score+=8;reason='Regalia Gold earns reward points on utility payments — one of few cards that does.';tags=[{text:'Earns on utilities',type:'good'}];}
+    }
+    if(/amazon|flipkart|meesho|online shopping|online purchase/.test(q)&&!/swiggy/.test(q)){
+      if(card.id==='swiggy'){score+=12;rate=5.0;reason='5% cashback on Amazon, Flipkart, apparel, electronics, pharma, cabs. Cap ₹1,500/cycle.';tags=[{text:'5% online shopping',type:'good'}];}
+    }
+    if(/rent|housing|nobroker|nestaway|commonfloor/.test(q)){
+      if(card.id==='swiggy'){warnings=[{text:'⚠️ 0% cashback + 1% rent fee',type:'warning'}];score-=20;}
+      if(card.id==='regalia'){warnings=[{text:'⚠️ 0% on rent',type:'warning'}];score-=15;}
+      if(card.id==='sbi'){warnings=[{text:'⚠️ rent excluded',type:'warning'}];score-=15;}
+      if(card.id==='yes'){warnings=[{text:'⚠️ 0% gold back on rent',type:'warning'}];score-=10;}
+      if(card.id==='sapphiro_amex'||card.id==='sapphiro_mc'){reason='Base 0.5% — not excluded from Sapphiro but not accelerated either.';score+=2;}
+    }
+    if(/fuel|petrol|pump|hp |bharat petroleum|indian oil|shell|iocl/.test(q)){
+      if(card.id==='sbi'){tags.push({text:'1% surcharge waiver',type:'good'});score+=5;}
+      if(card.id==='yes'){tags.push({text:'1% surcharge waiver',type:'good'});score+=5;}
+    }
+    return {card,score,rate,reason,tags,warnings};
+  }).sort((a,b)=>b.score-a.score);
+}
+
+// ── UI ─────────────────────────────────────────────────────────────────────────
+let mode='rule';
+const PROXY_URL = 'https://which-card-production.up.railway.app';
+
+function setMode(m){
+  mode=m;
+  document.getElementById('ruleBtn').classList.toggle('active',m==='rule');
+  document.getElementById('aiBtn').classList.toggle('active',m==='ai');
+  document.getElementById('apiSection').classList.toggle('visible',m==='ai');
+}
+
+}
+
+function quickAsk(t){document.getElementById('queryInput').value=t;recommend();}
+
+function feeLabel(card){
+  return card.ltf ? '<span style="color:var(--accent)">Lifetime Free</span>' : '₹'+card.fee.toLocaleString()+'/yr';
+}
+
+function renderResult(primary,runner){
+  const p=primary.card, r=runner?runner.card:null;
+  const tagsHtml=t=>t.map(x=>`<span class="tag ${x.type}">${x.text}</span>`).join('');
+  let html=`
+    <div class="rec-card">
+      <div class="rec-header">
+        <div class="rec-card-svg">${CARD_SVGS[p.id]}</div>
+        <div class="rec-meta">
+          <div class="rec-rank">✦ Best Pick</div>
+          <div class="rec-name">${p.name}</div>
+          <div class="rec-subtitle">${p.network} · ${feeLabel(p)}</div>
+        </div>
+        <div class="rec-rate">
+          <span class="rate-value">${primary.rate}%</span>
+          <span class="rate-label">value back</span>
+        </div>
+      </div>
+      <div class="rec-body">
+        <p class="rec-reason">${primary.reason||p.bestFor.join(', ')}</p>
+        <div class="rec-tags">${tagsHtml([...(primary.tags||[]),...(primary.warnings||[])])}</div>
+      </div>
+    </div>`;
+  if(r){
+    html+=`
+      <div class="runner-up">
+        <div class="runner-svg">${CARD_SVGS[r.id]}</div>
+        <div class="runner-meta">
+          <div class="runner-rank">Runner-up</div>
+          <div class="runner-name">${r.name}</div>
+          <div class="runner-reason">${runner.reason?(runner.reason.substring(0,100)+(runner.reason.length>100?'…':'')):r.bestFor.join(', ')}</div>
+        </div>
+        <div class="runner-rate">${runner.rate}%</div>
+      </div>`;
+  }
+  document.getElementById('resultArea').innerHTML=html;
+}
+
+function renderLoading(){document.getElementById('resultArea').innerHTML=`<div class="loading">Thinking<span class="loading-dots"></span></div>`;}
+function renderError(m){document.getElementById('resultArea').innerHTML=`<div class="error-box">${m}</div>`;}
+
+// ── GEMINI ─────────────────────────────────────────────────────────────────────
+async function geminiRecommend(query){
+  const summary=CARDS.map(c=>`- ${c.name} (${c.network}, ${c.ltf?'LTF':'₹'+c.fee+'/yr'}): Base ${c.baseRate}% | Best for: ${c.bestFor.join(', ')} | Perks: ${c.perks.slice(0,3).join('; ')} | Exclusions: ${c.exclusions.join(', ')}`).join('\n');
+  const prompt=`You are a credit card advisor for an Indian user with these 6 cards:\n${summary}\n\nUser query: "${query}"\n\nRespond ONLY in JSON (no markdown, no backticks):\n{"primary":{"card":"<exact card name from list>","rate":<number>,"reason":"<2-3 sentences>","tags":[{"text":"...","type":"good|warning"}]},"runner_up":{"card":"<exact name>","rate":<number>,"reason":"<1 sentence>"},"tip":"<pro tip or empty string>"}`;
+  try{
+    const res=await fetch(`${PROXY_URL}/ask`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+    });
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message);
+    let text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    text=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(text);
+    const findCard=name=>CARDS.find(c=>c.name.toLowerCase().includes(name.toLowerCase().split(' ')[0]))||CARDS[0];
+    renderResult(
+      {card:findCard(parsed.primary.card),rate:parsed.primary.rate,reason:parsed.primary.reason,tags:parsed.primary.tags||[],warnings:[]},
+      {card:findCard(parsed.runner_up.card),rate:parsed.runner_up.rate,reason:parsed.runner_up.reason,tags:[],warnings:[]}
+    );
+    if(parsed.tip) document.getElementById('resultArea').innerHTML+=`<div class="tip-box"><span class="tip-label">✦ Pro Tip</span>${parsed.tip}</div>`;
+  }catch(e){renderError(`Gemini error: ${e.message}. Check your API key or try Rule-Based mode.`);}
+}
+
+// ── MAIN ───────────────────────────────────────────────────────────────────────
+async function recommend(){
+  const query=document.getElementById('queryInput').value.trim();
+  if(!query) return;
+  const btn=document.getElementById('searchBtn');
+  btn.disabled=true; document.getElementById('searchLabel').textContent='...';
+  renderLoading();
+  try{
+    if(mode==='ai') await geminiRecommend(query);
+    else{const r=ruleEngine(query);renderResult(r[0],r[1]);}
+  }finally{btn.disabled=false;document.getElementById('searchLabel').textContent='Recommend';}
+}
+
+// ── WALLET ─────────────────────────────────────────────────────────────────────
+document.getElementById('cardsGrid').innerHTML=CARDS.map(card=>`
+  <div class="card-tile" onclick="">
+    <div class="card-tile-top" style="background:${card.color};"></div>
+    <div class="card-svg-wrap">${CARD_SVGS[card.id]}</div>
+    <div class="card-tile-stats">
+      <div class="stat-row">
+        <span class="stat-label">Base rate</span>
+        <span class="stat-value" style="color:var(--accent)">${card.baseRate}%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Annual fee</span>
+        <span class="stat-value" style="${card.ltf?'color:var(--accent)':''}">${card.ltf?'Lifetime Free':'₹'+card.fee.toLocaleString()}</span>
+      </div>
+      <div class="card-best-for">${card.bestFor.slice(0,2).join(' · ')}</div>
+    </div>
+  </div>`).join('');
+</script>
+</body>
+</html>
