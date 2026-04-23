@@ -384,9 +384,6 @@ function setMode(m){
   mode=m;
   document.getElementById('ruleBtn').classList.toggle('active',m==='rule');
   document.getElementById('aiBtn').classList.toggle('active',m==='ai');
-  document.getElementById('apiSection').classList.toggle('visible',m==='ai');
-}
-
 }
 
 function quickAsk(t){document.getElementById('queryInput').value=t;recommend();}
