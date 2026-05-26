@@ -21,14 +21,14 @@ Two modes:
 
 The six cards in my wallet:
 
-| Card | Network | Best For |
-|------|---------|----------|
-| SBI SimplySave | RuPay | Dining, movies, grocery |
-| Yes Bank Uni Gold | Mastercard | Forex, flights, hotels |
-| HDFC Swiggy | Mastercard | Swiggy, online shopping |
-| HDFC Regalia Gold | Visa/MC | All-around, Myntra/Nykaa |
-| ICICI Sapphiro Amex | Amex | BookMyShow BOGO, lounge |
-| ICICI Sapphiro MC | Mastercard | Stack with Amex for 4 free movies/month |
+| Card | Network | Fee | Best For |
+|------|---------|-----|----------|
+| SBI SimplySave | RuPay | ₹499/yr | Dining, movies, grocery |
+| Yes Bank Uni Gold | Mastercard | Lifetime free | Forex, flights, hotels |
+| HDFC Swiggy | Mastercard | Lifetime free | Swiggy, online shopping |
+| HDFC Regalia Gold | Visa/MC | ₹2,500/yr | All-around, Myntra/Nykaa |
+| ICICI Sapphiro Amex | Amex | Lifetime free | BookMyShow BOGO, lounge |
+| ICICI Sapphiro MC | Mastercard | Lifetime free | Stack with Amex for 4 free movies/month |
 
 ---
 
@@ -42,34 +42,33 @@ Browser (GitHub Pages)
     └── AI mode: POST /ask
             │
             ▼
-    Vercel Proxy (Node.js)
+    Vercel Serverless Function
+    (which-card-nine.vercel.app)
             │
             ▼
     Gemini 2.5 Flash API
 ```
 
-The frontend is a single HTML file — no framework, no build step, no node_modules. The Gemini API key lives in the proxy's environment variables and never touches the browser.
+The frontend is a single HTML file — no framework, no build step, no node_modules. The Gemini API key lives in Vercel's environment variables and never touches the browser.
 
-Proxy repo: [card-advisor-proxy →](https://github.com/prashantapurkayastha/card-advisor-proxy)
+Proxy repo: [card-advisor-proxy →](https://github.com/prashantapurkayastha/which-card)
 
 ---
 
 ## Running locally
 
-No build step needed. Just open `index.html` in a browser.
+No build step needed. Just open `index.html` in a browser — rule-based mode works immediately.
 
-For AI mode to work locally, you'll need the proxy running:
+For AI mode locally, clone and run the proxy:
 
 ```bash
-# Clone the proxy repo
-git clone https://github.com/prashantapurkayastha/card-advisor-proxy
-cd card-advisor-proxy
+git clone https://github.com/prashantapurkayastha/which-card
+cd which-card
 npm install
 
 # Add your Gemini API key
-echo "GEMINI_API_KEY=your_key_here" > .env
-
-npm start
+export GEMINI_API_KEY=your_key_here
+node index.js
 ```
 
 Then update `PROXY_URL` in `index.html` to `http://localhost:3000` and open the file.
@@ -80,15 +79,17 @@ Then update `PROXY_URL` in `index.html` to `http://localhost:3000` and open the 
 
 **Why a single HTML file?** The tool is personal — I use it on my phone, sometimes offline. A single file means I can save it locally or share it as an attachment without any hosting dependency. The rule-based mode works entirely without a network connection.
 
-**Why a proxy instead of calling Gemini directly?** Putting an API key in client-side JS means it's visible to anyone who opens DevTools. The proxy costs nothing to run (Vercel's free tier handles this workload without breaking a sweat) and keeps the key server-side permanently.
+**Why a proxy instead of calling Gemini directly?** Putting an API key in client-side JS means it's visible to anyone who opens DevTools. The Vercel serverless function costs nothing to run and keeps the key server-side permanently.
 
-**Why two modes?** The rule-based engine is fast and deterministic — good for quick lookups. The AI mode handles edge cases and ambiguous queries better, and adds context I didn't anticipate when writing the rules.
+**Why two modes?** The rule-based engine is fast and deterministic — good for quick lookups. The AI mode handles edge cases and ambiguous queries better, and surfaces context the rules don't cover (like stacking both Sapphiro cards for BookMyShow).
+
+**Why custom SVG card graphics?** Each card has a hand-coded SVG that reflects its real visual identity — colors, network logo, card name. It made the wallet section feel like an actual wallet rather than a data table.
 
 ---
 
 ## Tech stack
 
 - Vanilla HTML/CSS/JS — no framework
-- SVG card graphics (custom, hand-coded)
+- Custom SVG card graphics
 - Gemini 2.5 Flash via REST API
-- Hosted on GitHub Pages
+- Hosted on GitHub Pages (frontend) + Vercel (proxy)
