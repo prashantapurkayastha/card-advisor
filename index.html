@@ -521,6 +521,7 @@ document.getElementById('cardsGrid').innerHTML=CARDS.map(card=>`
       <div class="card-best-for">${card.bestFor.slice(0,2).join(' · ')}</div>
     </div>
   </div>`).join('');
+  fetch(`${PROXY_URL}/health`).catch(() => {});
 </script>
 </body>
 </html>
